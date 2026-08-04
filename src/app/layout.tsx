@@ -18,7 +18,11 @@ export const metadata: Metadata = {
     "Team-Retros als Segelreise: Wind, Anker und Felsen zum gemeinsamen Ziel.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="de"
