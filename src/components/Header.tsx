@@ -19,6 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import {
   createSurvey,
   reorderSurveys,
@@ -416,49 +417,51 @@ export function Header({
         </>
       )}
 
-      {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
-          <form
-            onSubmit={handleCreate}
-            className="w-full max-w-lg rounded-2xl border border-[var(--line)] bg-[var(--foam)] p-5 shadow-2xl"
-          >
-            <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--ink)]">
-              Neue Umfrage
-            </h2>
-            <p className="mt-1 text-sm text-[var(--ink-muted)]">
-              Definiere ein klares Ziel — es erscheint bei der Insel.
-            </p>
-            <textarea
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              rows={4}
-              placeholder='z.B. „Bis Ende Jahr sollen 50% der Arbeiten xy erledigt sein.“'
-              className="mt-4 w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--sea)]"
-              autoFocus
-            />
-            {error && (
-              <p className="mt-2 text-sm text-[var(--rock)]" role="alert">
-                {error}
+      {createOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 p-3 sm:items-center sm:p-4">
+            <form
+              onSubmit={handleCreate}
+              className="w-full max-w-lg rounded-2xl border border-[var(--line)] bg-[var(--foam)] p-5 shadow-2xl"
+            >
+              <h2 className="font-[family-name:var(--font-display)] text-2xl text-[var(--ink)]">
+                Neue Umfrage
+              </h2>
+              <p className="mt-1 text-sm text-[var(--ink-muted)]">
+                Definiere ein klares Ziel — es erscheint bei der Insel.
               </p>
-            )}
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setCreateOpen(false)}
-                className="h-9 rounded-md px-3 text-sm text-[var(--ink-muted)] hover:bg-black/5"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="submit"
-                className="h-9 rounded-md bg-[var(--sea)] px-4 text-sm font-medium text-white hover:bg-[var(--sea-deep)]"
-              >
-                Starten
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+              <textarea
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                rows={4}
+                placeholder='z.B. „Bis Ende Jahr sollen 50% der Arbeiten xy erledigt sein.“'
+                className="mt-4 w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--sea)]"
+                autoFocus
+              />
+              {error && (
+                <p className="mt-2 text-sm text-[var(--rock)]" role="alert">
+                  {error}
+                </p>
+              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCreateOpen(false)}
+                  className="h-9 rounded-md px-3 text-sm text-[var(--ink-muted)] hover:bg-black/5"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="submit"
+                  className="h-9 rounded-md bg-[var(--sea)] px-4 text-sm font-medium text-white hover:bg-[var(--sea-deep)]"
+                >
+                  Starten
+                </button>
+              </div>
+            </form>
+          </div>,
+          document.body,
+        )}
     </header>
   );
 }
