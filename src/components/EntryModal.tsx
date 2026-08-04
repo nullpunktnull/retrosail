@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createEntry, deleteEntry, updateEntry } from "@/lib/actions";
 import {
   getOrCreateIdentity,
@@ -29,6 +29,35 @@ const TYPE_LABELS: Record<EntryType, string> = {
   ROCK: "Felsen — was das Ziel unmöglich macht",
 };
 
+/** Compact set for retros — wind / blockers / mood / team. */
+const QUICK_EMOJIS = [
+  "⛵",
+  "💨",
+  "🌊",
+  "🏝️",
+  "⚓",
+  "🪨",
+  "🔥",
+  "💡",
+  "✅",
+  "❌",
+  "⚠️",
+  "🚧",
+  "🐢",
+  "🚀",
+  "💪",
+  "🙌",
+  "👍",
+  "👎",
+  "❤️",
+  "😂",
+  "🤔",
+  "😅",
+  "😤",
+  "🎯",
+  "⏱️",
+] as const;
+
 export function EntryModal({
   surveyId,
   mode,
@@ -40,13 +69,31 @@ export function EntryModal({
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const emojiWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!mode) return;
     setError("");
+    setEmojiOpen(false);
     setName(mode.kind === "edit" ? mode.entry.authorName : getStoredName());
     setContent(mode.kind === "edit" ? mode.entry.content : "");
   }, [mode]);
+
+  useEffect(() => {
+    if (!emojiOpen) return;
+    function onPointerDown(e: MouseEvent) {
+      if (
+        emojiWrapRef.current &&
+        !emojiWrapRef.current.contains(e.target as Node)
+      ) {
+        setEmojiOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [emojiOpen]);
 
   if (!mode) return null;
 
@@ -54,20 +101,47 @@ export function EntryModal({
   const title =
     mode.kind === "create" ? "Eintrag hinzufügen" : "Eintrag bearbeiten";
 
-  function wrapBold() {
-    const el = document.getElementById(
-      "retrosail-content",
-    ) as HTMLTextAreaElement | null;
+  function insertAtCursor(snippet: string) {
+    const el = textareaRef.current;
     if (!el) {
-      setContent((c) => `${c}**fett**`);
+      setContent((c) => c + snippet);
       return;
     }
     const start = el.selectionStart;
     const end = el.selectionEnd;
-    const selected = content.slice(start, end) || "fett";
-    const next =
-      content.slice(0, start) + `**${selected}**` + content.slice(end);
+    const next = content.slice(0, start) + snippet + content.slice(end);
     setContent(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + snippet.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }
+
+  function wrapBold() {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? content.length;
+    const end = el?.selectionEnd ?? content.length;
+    const selected = content.slice(start, end);
+    const inner = selected || "fett";
+    const snippet = `**${inner}**`;
+    const next = content.slice(0, start) + snippet + content.slice(end);
+    setContent(next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      if (selected) {
+        const pos = start + snippet.length;
+        el.setSelectionRange(pos, pos);
+      } else {
+        el.setSelectionRange(start + 2, start + 2 + inner.length);
+      }
+    });
+  }
+
+  function insertEmoji(emoji: string) {
+    insertAtCursor(emoji);
+    setEmojiOpen(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -155,16 +229,46 @@ export function EntryModal({
         <label className="mt-3 block">
           <span className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
             Kommentar
-            <button
-              type="button"
-              onClick={wrapBold}
-              className="rounded px-1.5 py-0.5 font-semibold text-[var(--ink)] hover:bg-black/5"
-              title="Auswahl fett machen (**text**)"
-            >
-              B
-            </button>
+            <span className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={wrapBold}
+                className="rounded px-1.5 py-0.5 font-semibold text-[var(--ink)] hover:bg-black/5"
+                title="Auswahl fett machen (**text**)"
+              >
+                B
+              </button>
+              <div className="relative" ref={emojiWrapRef}>
+                <button
+                  type="button"
+                  onClick={() => setEmojiOpen((v) => !v)}
+                  className="rounded px-1.5 py-0.5 text-[var(--ink)] hover:bg-black/5"
+                  title="Emoji einfügen"
+                  aria-expanded={emojiOpen}
+                >
+                  ☺
+                </button>
+                {emojiOpen && (
+                  <div className="absolute top-full right-0 z-10 mt-1 w-[15.5rem] rounded-xl border border-[var(--line)] bg-[var(--foam)] p-2 shadow-lg">
+                    <div className="grid grid-cols-5 gap-0.5">
+                      {QUICK_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => insertEmoji(emoji)}
+                          className="flex h-9 items-center justify-center rounded-lg text-lg hover:bg-black/5"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </span>
           </span>
           <textarea
+            ref={textareaRef}
             id="retrosail-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
