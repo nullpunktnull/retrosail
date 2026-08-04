@@ -11,6 +11,7 @@ import {
 } from "@/lib/identity";
 import { renderRichText } from "@/lib/rich-text";
 import { deleteSurvey, updateSurveyGoal } from "@/lib/actions";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { EntryModal } from "./EntryModal";
 
 type Props = {
@@ -135,6 +136,9 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalDraft, setGoalDraft] = useState(survey.goal);
   const [goalError, setGoalError] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     setIdentity(getOrCreateIdentity());
@@ -185,21 +189,18 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
   }
 
   async function handleDeleteSurvey() {
-    if (
-      !confirm(
-        `Umfrage wirklich löschen?\n\n„${survey.goal.slice(0, 120)}${survey.goal.length > 120 ? "…" : ""}“\n\nAlle Einträge gehen verloren.`,
-      )
-    ) {
-      return;
-    }
+    setDeleteBusy(true);
+    setDeleteError("");
     const result = await deleteSurvey({
       surveyId: survey.id,
       identityToken: identity,
     });
+    setDeleteBusy(false);
     if (!result.ok) {
-      alert(result.error);
+      setDeleteError(result.error);
       return;
     }
+    setDeleteOpen(false);
     onSurveyDeleted(survey.id);
   }
 
@@ -283,7 +284,10 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
                     </button>
                     <button
                       type="button"
-                      onClick={handleDeleteSurvey}
+                      onClick={() => {
+                        setDeleteError("");
+                        setDeleteOpen(true);
+                      }}
                       className="text-xs text-[var(--rock)] underline-offset-2 hover:underline"
                     >
                       Umfrage löschen
@@ -327,6 +331,20 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
         onClose={() => setModal(null)}
         onSaved={upsertEntry}
         onDeleted={removeEntry}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Umfrage löschen?"
+        body={`„${survey.goal.slice(0, 160)}${survey.goal.length > 160 ? "…" : ""}“\n\nAlle Wind-, Anker- und Felsen-Einträge gehen unwiderruflich verloren.${deleteError ? `\n\n${deleteError}` : ""}`}
+        confirmLabel="Endgültig löschen"
+        busy={deleteBusy}
+        onCancel={() => {
+          if (deleteBusy) return;
+          setDeleteOpen(false);
+          setDeleteError("");
+        }}
+        onConfirm={handleDeleteSurvey}
       />
     </div>
   );

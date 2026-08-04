@@ -20,6 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   createSurvey,
   deleteSurvey,
@@ -190,6 +191,9 @@ export function Header({
   const [pending, startTransition] = useTransition();
   const [localSurveys, setLocalSurveys] = useState(surveys);
   const [identity, setIdentity] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<SurveySummary | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     setIdentity(getOrCreateIdentity());
@@ -316,27 +320,31 @@ export function Header({
     onSurveyCreated(result.survey);
   }
 
-  async function handleDeleteSurvey(surveyId: string) {
+  function requestDeleteSurvey(surveyId: string) {
     const survey = localSurveys.find((s) => s.id === surveyId);
     if (!survey) return;
-    if (
-      !confirm(
-        `Umfrage wirklich löschen?\n\n„${survey.goal.slice(0, 120)}${survey.goal.length > 120 ? "…" : ""}“\n\nAlle Einträge gehen verloren.`,
-      )
-    ) {
-      return;
-    }
+    setDeleteError("");
+    setDeleteTarget(survey);
+  }
+
+  async function confirmDeleteSurvey() {
+    if (!deleteTarget) return;
+    setDeleteBusy(true);
+    setDeleteError("");
     const token = getOrCreateIdentity();
     const result = await deleteSurvey({
-      surveyId,
+      surveyId: deleteTarget.id,
       identityToken: token,
     });
+    setDeleteBusy(false);
     if (!result.ok) {
-      alert(result.error);
+      setDeleteError(result.error);
       return;
     }
-    setLocalSurveys((prev) => prev.filter((s) => s.id !== surveyId));
-    onSurveyDeleted(surveyId);
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    setLocalSurveys((prev) => prev.filter((s) => s.id !== id));
+    onSurveyDeleted(id);
   }
 
   const dragItem = localSurveys.find((s) => s.id === activeId);
@@ -454,7 +462,7 @@ export function Header({
                     onSelectSurvey(id);
                     setOpen(false);
                   }}
-                  onDelete={handleDeleteSurvey}
+                  onDelete={requestDeleteSurvey}
                 />
                 <DropColumn
                   id="ARCHIVED"
@@ -466,7 +474,7 @@ export function Header({
                     onSelectSurvey(id);
                     setOpen(false);
                   }}
-                  onDelete={handleDeleteSurvey}
+                  onDelete={requestDeleteSurvey}
                 />
               </div>
               <DragOverlay>
@@ -529,6 +537,24 @@ export function Header({
           </div>,
           document.body,
         )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Umfrage löschen?"
+        body={
+          deleteTarget
+            ? `„${deleteTarget.goal.slice(0, 160)}${deleteTarget.goal.length > 160 ? "…" : ""}“\n\nAlle Wind-, Anker- und Felsen-Einträge gehen unwiderruflich verloren.${deleteError ? `\n\n${deleteError}` : ""}`
+            : ""
+        }
+        confirmLabel="Endgültig löschen"
+        busy={deleteBusy}
+        onCancel={() => {
+          if (deleteBusy) return;
+          setDeleteTarget(null);
+          setDeleteError("");
+        }}
+        onConfirm={confirmDeleteSurvey}
+      />
     </header>
   );
 }

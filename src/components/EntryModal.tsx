@@ -9,6 +9,7 @@ import {
   type EntryDTO,
   type EntryType,
 } from "@/lib/identity";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 type Mode =
   | { kind: "create"; type: EntryType }
@@ -70,6 +71,7 @@ export function EntryModal({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiWrapRef = useRef<HTMLDivElement>(null);
 
@@ -77,6 +79,7 @@ export function EntryModal({
     if (!mode) return;
     setError("");
     setEmojiOpen(false);
+    setConfirmDelete(false);
     setName(mode.kind === "edit" ? mode.entry.authorName : getStoredName());
     setContent(mode.kind === "edit" ? mode.entry.content : "");
   }, [mode]);
@@ -187,7 +190,6 @@ export function EntryModal({
 
   async function handleDelete() {
     if (mode!.kind !== "edit") return;
-    if (!confirm("Eintrag wirklich löschen?")) return;
     setBusy(true);
     const identity = getOrCreateIdentity();
     const result = await deleteEntry({
@@ -197,6 +199,7 @@ export function EntryModal({
     setBusy(false);
     if (!result.ok) {
       setError(result.error);
+      setConfirmDelete(false);
       return;
     }
     onDeleted(mode!.entry.id);
@@ -289,7 +292,7 @@ export function EntryModal({
           {mode.kind === "edit" ? (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               disabled={busy}
               className="h-9 rounded-md px-3 text-sm text-[var(--rock)] hover:bg-[color-mix(in_oklab,var(--rock)_10%,transparent)]"
             >
@@ -316,6 +319,18 @@ export function EntryModal({
           </div>
         </div>
       </form>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Eintrag löschen?"
+        body="Dieser Kommentar wird unwiderruflich entfernt."
+        confirmLabel="Löschen"
+        busy={busy}
+        onCancel={() => {
+          if (!busy) setConfirmDelete(false);
+        }}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
