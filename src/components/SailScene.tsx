@@ -12,7 +12,11 @@ import {
 import { renderRichText } from "@/lib/rich-text";
 import { deleteSurvey, updateSurveyGoal } from "@/lib/actions";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { CourseSummaryModal } from "./CourseSummaryModal";
 import { EntryModal } from "./EntryModal";
+import { FocusMode } from "./FocusMode";
+import { SceneAtmosphere } from "./SceneAtmosphere";
+import { ShareLinkButton } from "./ShareLinkButton";
 
 type Props = {
   survey: SurveyDTO;
@@ -20,7 +24,7 @@ type Props = {
   onSurveyDeleted: (surveyId: string) => void;
 };
 
-const ZONE_META: Record<
+export const ZONE_META: Record<
   EntryType,
   { title: string; addLabel: string }
 > = {
@@ -78,6 +82,7 @@ function ZonePanel({
   survey,
   onAdd,
   onEdit,
+  onFocus,
   className,
 }: {
   type: EntryType;
@@ -86,43 +91,57 @@ function ZonePanel({
   survey: SurveyDTO;
   onAdd: () => void;
   onEdit: (entry: EntryDTO) => void;
+  onFocus: () => void;
   className?: string;
 }) {
   const meta = ZONE_META[type];
   return (
-    <section
-      className={`flex min-h-0 flex-col gap-2 rounded-2xl border border-white/25 bg-[color-mix(in_oklab,var(--foam)_58%,transparent)] p-3 shadow-lg backdrop-blur-md sm:p-3.5 ${className ?? ""}`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-[family-name:var(--font-display)] text-base leading-snug text-[var(--ink)] drop-shadow-sm sm:text-lg">
-          {meta.title}
-        </h3>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="shrink-0 rounded-md bg-[var(--sea)]/90 px-2 py-1 text-xs font-medium text-white backdrop-blur hover:bg-[var(--sea)]"
-          aria-label={`${meta.title} hinzufügen`}
-        >
-          {meta.addLabel}
-        </button>
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
-        {entries.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-white/30 bg-white/20 px-3 py-3 text-center text-xs text-[var(--ink-muted)] backdrop-blur-sm">
-            Noch leer — sei der Erste.
-          </p>
-        ) : (
-          entries.map((entry) => (
-            <EntryCard
-              key={entry.id}
-              entry={entry}
-              editable={canEditEntry(entry, survey, identity)}
-              onEdit={() => onEdit(entry)}
-            />
-          ))
-        )}
-      </div>
-    </section>
+    <div className={className}>
+      <section
+        className="flex max-h-full min-h-0 flex-col gap-2 rounded-2xl border border-white/25 bg-[color-mix(in_oklab,var(--foam)_58%,transparent)] p-3 shadow-lg backdrop-blur-md sm:p-3.5"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-[family-name:var(--font-display)] text-base leading-snug text-[var(--ink)] drop-shadow-sm sm:text-lg">
+            {meta.title}
+          </h3>
+          <div className="flex shrink-0 gap-1">
+            <button
+              type="button"
+              onClick={onFocus}
+              className="rounded-md px-2 py-1 text-[11px] text-[var(--ink-muted)] hover:bg-black/5 hover:text-[var(--ink)]"
+              title="Fokus-Modus"
+              aria-label={`${meta.title} im Fokus`}
+            >
+              Fokus
+            </button>
+            <button
+              type="button"
+              onClick={onAdd}
+              className="rounded-md bg-[var(--sea)]/90 px-2 py-1 text-xs font-medium text-white backdrop-blur hover:bg-[var(--sea)]"
+              aria-label={`${meta.title} hinzufügen`}
+            >
+              {meta.addLabel}
+            </button>
+          </div>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
+          {entries.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-white/30 bg-white/20 px-3 py-3 text-center text-xs text-[var(--ink-muted)] backdrop-blur-sm">
+              Noch leer — sei der Erste.
+            </p>
+          ) : (
+            entries.map((entry) => (
+              <EntryCard
+                key={entry.id}
+                entry={entry}
+                editable={canEditEntry(entry, survey, identity)}
+                onEdit={() => onEdit(entry)}
+              />
+            ))
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -139,6 +158,8 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [focusType, setFocusType] = useState<EntryType | null>(null);
 
   useEffect(() => {
     setIdentity(getOrCreateIdentity());
@@ -213,12 +234,15 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-[color-mix(in_oklab,var(--sky)_22%,transparent)] via-transparent to-[color-mix(in_oklab,var(--deep)_22%,transparent)]" />
 
-      <div className="pointer-events-none absolute inset-0">
+      {/* Feature 4: Atmosphäre A1–A6 */}
+      <SceneAtmosphere />
+
+      <div className="pointer-events-none absolute inset-0 z-[6]">
         <div className="animate-drift absolute top-[14%] left-[22%] h-14 w-36 rounded-full bg-white/10 blur-2xl" />
         <div className="animate-sway absolute top-[40%] left-[42%] h-20 w-20 rounded-full bg-[var(--sea)]/10 blur-3xl" />
       </div>
 
-      {/* Wind — top left, near wind swirls */}
+      {/* Wind — top left */}
       <div className="absolute top-3 left-3 z-10 w-[min(100%-1.5rem,20rem)] max-h-[38%] sm:top-4 sm:left-4 sm:w-[22rem]">
         <ZonePanel
           className="animate-rise max-h-full"
@@ -228,10 +252,11 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
           survey={survey}
           onAdd={() => setModal({ kind: "create", type: "WIND" })}
           onEdit={(entry) => setModal({ kind: "edit", entry })}
+          onFocus={() => setFocusType("WIND")}
         />
       </div>
 
-      {/* Goal — top right, above island */}
+      {/* Goal — top right */}
       <div className="absolute top-3 right-3 z-10 w-[min(100%-1.5rem,22rem)] sm:top-4 sm:right-4 sm:w-[24rem]">
         <div className="animate-rise rounded-2xl border border-white/30 bg-[color-mix(in_oklab,var(--foam)_78%,transparent)] p-3.5 shadow-lg backdrop-blur-md sm:p-4">
           <p className="font-[family-name:var(--font-display)] text-base leading-snug text-[var(--ink)] sm:text-lg">
@@ -273,8 +298,17 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
               <h2 className="mt-1.5 text-sm leading-snug text-[var(--ink)] sm:text-base">
                 {survey.goal}
               </h2>
-{isCreator && (
-                  <div className="mt-2 flex flex-wrap gap-3">
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                <button
+                  type="button"
+                  onClick={() => setSummaryOpen(true)}
+                  className="text-xs text-[var(--sea-deep)] underline-offset-2 hover:underline"
+                >
+                  Zusammenfassung
+                </button>
+                <ShareLinkButton surveyId={survey.id} />
+                {isCreator && (
+                  <>
                     <button
                       type="button"
                       onClick={() => setEditingGoal(true)}
@@ -292,14 +326,15 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
                     >
                       Umfrage löschen
                     </button>
-                  </div>
+                  </>
                 )}
+              </div>
             </>
           )}
         </div>
       </div>
 
-      {/* Anchor — bottom left, near anchor, clear of ship */}
+      {/* Anchor — bottom left */}
       <div className="absolute bottom-3 left-3 z-10 w-[min(100%-1.5rem,20rem)] max-h-[36%] sm:bottom-4 sm:left-4 sm:w-[22rem]">
         <ZonePanel
           className="animate-rise max-h-full [animation-delay:100ms]"
@@ -309,11 +344,12 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
           survey={survey}
           onAdd={() => setModal({ kind: "create", type: "ANCHOR" })}
           onEdit={(entry) => setModal({ kind: "edit", entry })}
+          onFocus={() => setFocusType("ANCHOR")}
         />
       </div>
 
-      {/* Rocks — bottom right, flush with edge */}
-      <div className="absolute right-3 bottom-3 z-10 w-[min(100%-1.5rem,20rem)] max-h-[36%] sm:right-4 sm:bottom-4 sm:w-[22rem]">
+      {/* Rocks — bottom right */}
+      <div className="absolute right-3 bottom-3 z-10 w-[min(100%-1.5rem,20rem)] max-h-[36%] sm:bottom-4 sm:right-4 sm:w-[22rem]">
         <ZonePanel
           className="animate-rise max-h-full [animation-delay:160ms]"
           type="ROCK"
@@ -322,6 +358,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
           survey={survey}
           onAdd={() => setModal({ kind: "create", type: "ROCK" })}
           onEdit={(entry) => setModal({ kind: "edit", entry })}
+          onFocus={() => setFocusType("ROCK")}
         />
       </div>
 
@@ -331,6 +368,24 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
         onClose={() => setModal(null)}
         onSaved={upsertEntry}
         onDeleted={removeEntry}
+      />
+
+      {/* Feature 1 */}
+      <CourseSummaryModal
+        open={summaryOpen}
+        survey={survey}
+        onClose={() => setSummaryOpen(false)}
+      />
+
+      {/* Feature 5 */}
+      <FocusMode
+        open={!!focusType}
+        type={focusType}
+        survey={survey}
+        identity={identity}
+        onClose={() => setFocusType(null)}
+        onAdd={(type) => setModal({ kind: "create", type })}
+        onEdit={(entry) => setModal({ kind: "edit", entry })}
       />
 
       <ConfirmDialog

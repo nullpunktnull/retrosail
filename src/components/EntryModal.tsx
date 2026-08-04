@@ -207,7 +207,7 @@ export function EntryModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center">
+    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/40 p-3 sm:items-center">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--foam)] p-5 shadow-2xl"

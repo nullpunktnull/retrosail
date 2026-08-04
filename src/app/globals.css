@@ -71,6 +71,248 @@ body {
   animation: sway 7s ease-in-out infinite;
 }
 
+/* —— Feature 4: Atmosphäre (A1–A6) —— */
+
+/* A1 WindSwooshes */
+@keyframes atm-wind-dash {
+  to {
+    stroke-dashoffset: -120;
+  }
+}
+
+.atm-wind-stroke {
+  stroke-dasharray: 8 14;
+  animation: atm-wind-dash 4.5s linear infinite;
+}
+
+.atm-wind-2 {
+  animation-duration: 6s;
+  animation-delay: -1.5s;
+}
+
+.atm-wind-3 {
+  animation-duration: 7.5s;
+  animation-delay: -3s;
+}
+
+/* A2 WaterlineGlow — Meeresspiegel ~60% */
+@keyframes atm-waterline-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+    opacity: 0.45;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.75;
+  }
+}
+
+.atm-waterline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58%;
+  height: 4%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(220, 245, 255, 0.55) 45%,
+    rgba(255, 255, 255, 0.25) 60%,
+    transparent 85%
+  );
+  background-size: 220% 100%;
+  filter: blur(2px);
+  mix-blend-mode: soft-light;
+  animation: atm-waterline-shift 7s ease-in-out infinite;
+}
+
+/* A3 Caustics — untere 40% */
+@keyframes atm-caustic-move {
+  0%,
+  100% {
+    background-position:
+      0% 0%,
+      40% 60%,
+      80% 30%;
+  }
+  50% {
+    background-position:
+      30% 40%,
+      70% 20%,
+      10% 80%;
+  }
+}
+
+.atm-caustics {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 60%;
+  bottom: 0;
+  background:
+    radial-gradient(
+      ellipse 28% 22% at 20% 30%,
+      rgba(170, 230, 245, 0.22),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 24% 18% at 65% 55%,
+      rgba(140, 210, 230, 0.18),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 20% 16% at 45% 75%,
+      rgba(190, 240, 250, 0.14),
+      transparent 60%
+    );
+  background-size: 160% 160%;
+  mix-blend-mode: soft-light;
+  animation: atm-caustic-move 11s ease-in-out infinite;
+}
+
+/* A4 Sparkles */
+@keyframes atm-sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  40% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0.2;
+    transform: scale(0.7);
+  }
+}
+
+.atm-sparkles {
+  position: absolute;
+  inset: 0;
+}
+
+.atm-sparkle {
+  position: absolute;
+  left: var(--sx);
+  top: var(--sy);
+  width: calc(3px * var(--ss, 1));
+  height: calc(3px * var(--ss, 1));
+  border-radius: 50%;
+  background: rgba(230, 250, 255, 0.95);
+  box-shadow: 0 0 6px rgba(200, 240, 255, 0.8);
+  animation: atm-sparkle-twinkle 3.2s ease-in-out infinite;
+  animation-delay: var(--sd, 0s);
+}
+
+/* A5 Birds */
+@keyframes atm-bird-fly {
+  0% {
+    transform: translate3d(-10vw, 0, 0);
+  }
+  100% {
+    transform: translate3d(110vw, -8px, 0);
+  }
+}
+
+@keyframes atm-bird-flap {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.55);
+  }
+}
+
+.atm-birds {
+  position: absolute;
+  inset: 0;
+}
+
+.atm-bird {
+  position: absolute;
+  top: 14%;
+  left: 0;
+  animation: atm-bird-fly 38s linear infinite;
+}
+
+.atm-bird path {
+  transform-origin: center;
+  animation: atm-bird-flap 0.55s ease-in-out infinite;
+}
+
+.atm-bird-a {
+  top: 12%;
+  animation-duration: 42s;
+}
+
+.atm-bird-b {
+  top: 18%;
+  animation-duration: 51s;
+  animation-delay: -18s;
+  opacity: 0.85;
+}
+
+.atm-bird-c {
+  top: 9%;
+  animation-duration: 60s;
+  animation-delay: -30s;
+  opacity: 0.7;
+}
+
+/* A6 SunGlint */
+@keyframes atm-glint-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translate3d(0, 0, 0) scale(0.85);
+  }
+  45% {
+    opacity: 0.85;
+    transform: translate3d(-12px, 6px, 0) scale(1.15);
+  }
+  70% {
+    opacity: 0.4;
+    transform: translate3d(8px, -4px, 0) scale(1);
+  }
+}
+
+.atm-sunglint {
+  position: absolute;
+  top: 48%;
+  right: 14%;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 250, 220, 0.7) 0%,
+    rgba(255, 240, 180, 0.25) 35%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  filter: blur(1px);
+  animation: atm-glint-pulse 9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-drift,
+  .animate-sway,
+  .atm-wind-stroke,
+  .atm-waterline,
+  .atm-caustics,
+  .atm-sparkle,
+  .atm-bird,
+  .atm-bird path,
+  .atm-sunglint {
+    animation: none !important;
+  }
+}
+
 /* Thin scrollbars in zone lists */
 * {
   scrollbar-width: thin;

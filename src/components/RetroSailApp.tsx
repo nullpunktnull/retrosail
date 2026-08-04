@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { SailScene } from "@/components/SailScene";
+import { useLiveSurvey } from "@/hooks/useLiveSurvey";
 import { getSurvey } from "@/lib/actions";
 import type { SurveyDTO, SurveySummary } from "@/lib/identity";
 
@@ -15,17 +17,62 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
   const [surveys, setSurveys] = useState(initialSurveys);
   const [survey, setSurvey] = useState(initialSurvey);
   const [, startTransition] = useTransition();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const selectSurvey = useCallback((id: string) => {
-    startTransition(async () => {
-      const next = await getSurvey(id);
-      if (next) setSurvey(next);
-    });
-  }, []);
+  const syncUrl = useCallback(
+    (id: string | null) => {
+      if (!id) {
+        if (pathname !== "/") router.replace("/");
+        return;
+      }
+      const target = `/s/${id}`;
+      if (pathname !== target) router.replace(target);
+    },
+    [pathname, router],
+  );
+
+  const selectSurvey = useCallback(
+    (id: string) => {
+      startTransition(async () => {
+        const next = await getSurvey(id);
+        if (next) {
+          setSurvey(next);
+          syncUrl(next.id);
+        }
+      });
+    },
+    [syncUrl],
+  );
 
   useEffect(() => {
     setSurveys(initialSurveys);
   }, [initialSurveys]);
+
+  useEffect(() => {
+    setSurvey(initialSurvey);
+  }, [initialSurvey?.id]);
+
+  // Feature 2 — Live-Aktualisierung
+  useLiveSurvey({
+    surveyId: survey?.id ?? null,
+    onSurvey: (next) => {
+      setSurvey(next);
+      setSurveys((prev) =>
+        prev.map((s) =>
+          s.id === next.id
+            ? {
+                ...s,
+                goal: next.goal,
+                status: next.status,
+                entryCount: next.entries.length,
+              }
+            : s,
+        ),
+      );
+    },
+    onSurveyList: setSurveys,
+  });
 
   function handleSurveyCreated(created: SurveyDTO) {
     setSurveys((prev) => [
@@ -41,24 +88,44 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
       ...prev.filter((s) => s.id !== created.id),
     ]);
     setSurvey(created);
+    syncUrl(created.id);
   }
 
   function handleSurveyDeleted(surveyId: string) {
     setSurveys((prev) => {
       const next = prev.filter((s) => s.id !== surveyId);
       if (survey?.id === surveyId) {
-        const fallback = next.find((s) => s.status === "ACTIVE") ?? next[0] ?? null;
+        const fallback =
+          next.find((s) => s.status === "ACTIVE") ?? next[0] ?? null;
         if (fallback) {
           startTransition(async () => {
             const loaded = await getSurvey(fallback.id);
             setSurvey(loaded);
+            if (loaded) syncUrl(loaded.id);
           });
         } else {
           setSurvey(null);
+          syncUrl(null);
         }
       }
       return next;
     });
+  }
+
+  function handleSurveyChange(next: SurveyDTO) {
+    setSurvey(next);
+    setSurveys((prev) =>
+      prev.map((s) =>
+        s.id === next.id
+          ? {
+              ...s,
+              goal: next.goal,
+              status: next.status,
+              entryCount: next.entries.length,
+            }
+          : s,
+      ),
+    );
   }
 
   return (
@@ -76,21 +143,7 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
         <SailScene
           survey={survey}
           onSurveyDeleted={handleSurveyDeleted}
-          onSurveyChange={(next) => {
-            setSurvey(next);
-            setSurveys((prev) =>
-              prev.map((s) =>
-                s.id === next.id
-                  ? {
-                      ...s,
-                      goal: next.goal,
-                      status: next.status,
-                      entryCount: next.entries.length,
-                    }
-                  : s,
-              ),
-            );
-          }}
+          onSurveyChange={handleSurveyChange}
         />
       ) : (
         <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -109,8 +162,7 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
               Insel.
             </p>
             <p className="animate-rise mt-6 text-sm text-white/70 [animation-delay:180ms]">
-              Oben rechts:{" "}
-              <span className="text-white">Neue Umfrage</span>
+              Oben rechts: <span className="text-white">Neue Umfrage</span>
             </p>
           </div>
         </div>

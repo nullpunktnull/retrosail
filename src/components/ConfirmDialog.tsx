@@ -45,7 +45,7 @@ export function ConfirmDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[110] flex items-end justify-center bg-black/40 p-3 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[130] flex items-end justify-center bg-black/40 p-3 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !busy) onCancel();
