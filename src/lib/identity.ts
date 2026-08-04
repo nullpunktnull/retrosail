@@ -1,0 +1,81 @@
+export type EntryType = "WIND" | "ANCHOR" | "ROCK";
+export type SurveyStatus = "ACTIVE" | "ARCHIVED";
+
+export type EntryDTO = {
+  id: string;
+  surveyId: string;
+  type: EntryType;
+  authorName: string;
+  authorToken: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SurveyDTO = {
+  id: string;
+  goal: string;
+  creatorToken: string;
+  status: SurveyStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  entries: EntryDTO[];
+};
+
+export type SurveySummary = {
+  id: string;
+  goal: string;
+  creatorToken: string;
+  status: SurveyStatus;
+  sortOrder: number;
+  createdAt: string;
+  entryCount: number;
+};
+
+const IDENTITY_KEY = "retrosail_identity";
+const NAME_KEY = "retrosail_name";
+
+function randomToken(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `rs_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+}
+
+export function getOrCreateIdentity(): string {
+  if (typeof window === "undefined") return "";
+  let token = localStorage.getItem(IDENTITY_KEY);
+  if (!token) {
+    token = randomToken();
+    localStorage.setItem(IDENTITY_KEY, token);
+  }
+  return token;
+}
+
+export function getStoredName(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(NAME_KEY) ?? "";
+}
+
+export function setStoredName(name: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(NAME_KEY, name);
+}
+
+export function canEditEntry(
+  entry: { authorToken: string },
+  survey: { creatorToken: string },
+  identity: string,
+): boolean {
+  if (!identity) return false;
+  return entry.authorToken === identity || survey.creatorToken === identity;
+}
+
+export function canEditSurvey(
+  survey: { creatorToken: string },
+  identity: string,
+): boolean {
+  if (!identity) return false;
+  return survey.creatorToken === identity;
+}

@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum SurveyStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum EntryType {
+  WIND
+  ANCHOR
+  ROCK
+}
+
+model Survey {
+  id           String       @id @default(cuid())
+  goal         String
+  creatorToken String
+  status       SurveyStatus @default(ACTIVE)
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  entries      Entry[]
+
+  @@index([status, sortOrder])
+}
+
+model Entry {
+  id          String    @id @default(cuid())
+  surveyId    String
+  survey      Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  type        EntryType
+  authorName  String
+  authorToken String
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([surveyId, type])
+  @@index([authorToken])
+}

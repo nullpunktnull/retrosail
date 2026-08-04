@@ -1,26 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foam: #f3f7f4;
+  --ink: #1a2a32;
+  --ink-muted: #4a5d68;
+  --ink-faint: #7a8e99;
+  --line: #c9d5d1;
+  --sea: #2f6f7e;
+  --sea-deep: #1f515c;
+  --sky: #9ec5d0;
+  --deep: #0e2a36;
+  --island: #3d6b4f;
+  --rock: #8b3a2f;
+  --background: var(--foam);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--foam);
+  color: var(--ink);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(18px);
+  }
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.05);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.7s ease-out both;
+}
+
+.animate-drift {
+  animation: drift 9s ease-in-out infinite;
+}
+
+.animate-sway {
+  animation: sway 7s ease-in-out infinite;
+}
+
+/* Thin scrollbars in zone lists */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--sea) 45%, transparent) transparent;
 }
