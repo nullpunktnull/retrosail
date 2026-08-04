@@ -43,6 +43,24 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
     setSurvey(created);
   }
 
+  function handleSurveyDeleted(surveyId: string) {
+    setSurveys((prev) => {
+      const next = prev.filter((s) => s.id !== surveyId);
+      if (survey?.id === surveyId) {
+        const fallback = next.find((s) => s.status === "ACTIVE") ?? next[0] ?? null;
+        if (fallback) {
+          startTransition(async () => {
+            const loaded = await getSurvey(fallback.id);
+            setSurvey(loaded);
+          });
+        } else {
+          setSurvey(null);
+        }
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <Header
@@ -51,11 +69,13 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
         onSelectSurvey={selectSurvey}
         onSurveyCreated={handleSurveyCreated}
         onSurveysReordered={setSurveys}
+        onSurveyDeleted={handleSurveyDeleted}
       />
 
       {survey ? (
         <SailScene
           survey={survey}
+          onSurveyDeleted={handleSurveyDeleted}
           onSurveyChange={(next) => {
             setSurvey(next);
             setSurveys((prev) =>

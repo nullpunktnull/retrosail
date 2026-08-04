@@ -22,10 +22,12 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import {
   createSurvey,
+  deleteSurvey,
   reorderSurveys,
   searchAll,
 } from "@/lib/actions";
 import {
+  canEditSurvey,
   getOrCreateIdentity,
   type SurveyDTO,
   type SurveySummary,
@@ -37,48 +39,73 @@ type Props = {
   onSelectSurvey: (id: string) => void;
   onSurveyCreated: (survey: SurveyDTO) => void;
   onSurveysReordered: (surveys: SurveySummary[]) => void;
+  onSurveyDeleted: (surveyId: string) => void;
 };
 
 function SortableSurveyItem({
   survey,
   active,
+  canDelete,
   onSelect,
+  onDelete,
 }: {
   survey: SurveySummary;
   active: boolean;
+  canDelete: boolean;
   onSelect: () => void;
+  onDelete: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: survey.id });
 
   return (
-    <button
+    <div
       ref={setNodeRef}
-      type="button"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.4 : 1,
       }}
-      className={`group flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm transition ${
+      className={`group flex w-full items-start gap-1 rounded-md px-1 py-1 text-sm transition ${
         active
           ? "bg-[color-mix(in_oklab,var(--sea)_18%,transparent)] text-[var(--ink)]"
           : "text-[var(--ink-muted)] hover:bg-black/5 hover:text-[var(--ink)]"
       }`}
-      onClick={onSelect}
-      {...attributes}
-      {...listeners}
     >
-      <span className="mt-0.5 shrink-0 cursor-grab text-[var(--ink-faint)] group-active:cursor-grabbing">
+      <button
+        type="button"
+        className="mt-1 shrink-0 cursor-grab px-1 text-[var(--ink-faint)] group-active:cursor-grabbing"
+        aria-label="Verschieben"
+        {...attributes}
+        {...listeners}
+      >
         ⋮⋮
-      </span>
-      <span className="min-w-0 flex-1">
+      </button>
+      <button
+        type="button"
+        className="min-w-0 flex-1 px-1 py-1 text-left"
+        onClick={onSelect}
+      >
         <span className="line-clamp-2 leading-snug">{survey.goal}</span>
         <span className="mt-0.5 block text-[11px] text-[var(--ink-faint)]">
           {survey.entryCount} Einträge
         </span>
-      </span>
-    </button>
+      </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="mt-1 shrink-0 rounded px-1.5 py-1 text-[11px] text-[var(--rock)] opacity-70 hover:bg-[color-mix(in_oklab,var(--rock)_12%,transparent)] hover:opacity-100"
+          title="Umfrage löschen"
+          aria-label="Umfrage löschen"
+        >
+          ✕
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -87,13 +114,17 @@ function DropColumn({
   title,
   surveys,
   currentSurveyId,
+  identity,
   onSelect,
+  onDelete,
 }: {
   id: "ACTIVE" | "ARCHIVED";
   title: string;
   surveys: SurveySummary[];
   currentSurveyId: string | null;
+  identity: string;
   onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -127,7 +158,9 @@ function DropColumn({
                 key={survey.id}
                 survey={survey}
                 active={survey.id === currentSurveyId}
+                canDelete={canEditSurvey(survey, identity)}
                 onSelect={() => onSelect(survey.id)}
+                onDelete={() => onDelete(survey.id)}
               />
             ))
           )}
@@ -143,6 +176,7 @@ export function Header({
   onSelectSurvey,
   onSurveyCreated,
   onSurveysReordered,
+  onSurveyDeleted,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -155,6 +189,11 @@ export function Header({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [localSurveys, setLocalSurveys] = useState(surveys);
+  const [identity, setIdentity] = useState("");
+
+  useEffect(() => {
+    setIdentity(getOrCreateIdentity());
+  }, []);
 
   useEffect(() => {
     setLocalSurveys(surveys);
@@ -264,8 +303,9 @@ export function Header({
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const identity = getOrCreateIdentity();
-    const result = await createSurvey({ goal, creatorToken: identity });
+    const token = getOrCreateIdentity();
+    setIdentity(token);
+    const result = await createSurvey({ goal, creatorToken: token });
     if (!result.ok) {
       setError(result.error);
       return;
@@ -274,6 +314,29 @@ export function Header({
     setCreateOpen(false);
     setOpen(false);
     onSurveyCreated(result.survey);
+  }
+
+  async function handleDeleteSurvey(surveyId: string) {
+    const survey = localSurveys.find((s) => s.id === surveyId);
+    if (!survey) return;
+    if (
+      !confirm(
+        `Umfrage wirklich löschen?\n\n„${survey.goal.slice(0, 120)}${survey.goal.length > 120 ? "…" : ""}“\n\nAlle Einträge gehen verloren.`,
+      )
+    ) {
+      return;
+    }
+    const token = getOrCreateIdentity();
+    const result = await deleteSurvey({
+      surveyId,
+      identityToken: token,
+    });
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+    setLocalSurveys((prev) => prev.filter((s) => s.id !== surveyId));
+    onSurveyDeleted(surveyId);
   }
 
   const dragItem = localSurveys.find((s) => s.id === activeId);
@@ -386,20 +449,24 @@ export function Header({
                   title="Aktiv"
                   surveys={active}
                   currentSurveyId={currentSurveyId}
+                  identity={identity}
                   onSelect={(id) => {
                     onSelectSurvey(id);
                     setOpen(false);
                   }}
+                  onDelete={handleDeleteSurvey}
                 />
                 <DropColumn
                   id="ARCHIVED"
                   title="Archiv"
                   surveys={archived}
                   currentSurveyId={currentSurveyId}
+                  identity={identity}
                   onSelect={(id) => {
                     onSelectSurvey(id);
                     setOpen(false);
                   }}
+                  onDelete={handleDeleteSurvey}
                 />
               </div>
               <DragOverlay>

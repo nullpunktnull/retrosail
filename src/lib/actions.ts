@@ -147,6 +147,21 @@ export async function updateSurveyGoal(input: {
   return { ok: true, survey: toSurveyDTO(updated) };
 }
 
+export async function deleteSurvey(input: {
+  surveyId: string;
+  identityToken: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const survey = await prisma.survey.findUnique({ where: { id: input.surveyId } });
+  if (!survey) return { ok: false, error: "Umfrage nicht gefunden." };
+  if (survey.creatorToken !== input.identityToken) {
+    return { ok: false, error: "Nur der Ersteller darf die Umfrage löschen." };
+  }
+
+  await prisma.survey.delete({ where: { id: input.surveyId } });
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function reorderSurveys(input: {
   activeIds: string[];
   archivedIds: string[];

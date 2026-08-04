@@ -10,12 +10,13 @@ import {
   type SurveyDTO,
 } from "@/lib/identity";
 import { renderRichText } from "@/lib/rich-text";
-import { updateSurveyGoal } from "@/lib/actions";
+import { deleteSurvey, updateSurveyGoal } from "@/lib/actions";
 import { EntryModal } from "./EntryModal";
 
 type Props = {
   survey: SurveyDTO;
   onSurveyChange: (survey: SurveyDTO) => void;
+  onSurveyDeleted: (surveyId: string) => void;
 };
 
 const ZONE_META: Record<
@@ -124,7 +125,7 @@ function ZonePanel({
   );
 }
 
-export function SailScene({ survey, onSurveyChange }: Props) {
+export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
   const [identity, setIdentity] = useState("");
   const [modal, setModal] = useState<
     | { kind: "create"; type: EntryType }
@@ -181,6 +182,25 @@ export function SailScene({ survey, onSurveyChange }: Props) {
     }
     onSurveyChange(result.survey);
     setEditingGoal(false);
+  }
+
+  async function handleDeleteSurvey() {
+    if (
+      !confirm(
+        `Umfrage wirklich löschen?\n\n„${survey.goal.slice(0, 120)}${survey.goal.length > 120 ? "…" : ""}“\n\nAlle Einträge gehen verloren.`,
+      )
+    ) {
+      return;
+    }
+    const result = await deleteSurvey({
+      surveyId: survey.id,
+      identityToken: identity,
+    });
+    if (!result.ok) {
+      alert(result.error);
+      return;
+    }
+    onSurveyDeleted(survey.id);
   }
 
   return (
@@ -252,15 +272,24 @@ export function SailScene({ survey, onSurveyChange }: Props) {
               <h2 className="mt-1.5 text-sm leading-snug text-[var(--ink)] sm:text-base">
                 {survey.goal}
               </h2>
-              {isCreator && (
-                <button
-                  type="button"
-                  onClick={() => setEditingGoal(true)}
-                  className="mt-2 text-xs text-[var(--sea-deep)] underline-offset-2 hover:underline"
-                >
-                  Ziel bearbeiten
-                </button>
-              )}
+{isCreator && (
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEditingGoal(true)}
+                      className="text-xs text-[var(--sea-deep)] underline-offset-2 hover:underline"
+                    >
+                      Ziel bearbeiten
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteSurvey}
+                      className="text-xs text-[var(--rock)] underline-offset-2 hover:underline"
+                    >
+                      Umfrage löschen
+                    </button>
+                  </div>
+                )}
             </>
           )}
         </div>
