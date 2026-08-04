@@ -71,29 +71,7 @@ body {
   animation: sway 7s ease-in-out infinite;
 }
 
-/* —— Feature 4: Atmosphäre (A1–A6) —— */
-
-/* A1 WindSwooshes */
-@keyframes atm-wind-dash {
-  to {
-    stroke-dashoffset: -120;
-  }
-}
-
-.atm-wind-stroke {
-  stroke-dasharray: 8 14;
-  animation: atm-wind-dash 4.5s linear infinite;
-}
-
-.atm-wind-2 {
-  animation-duration: 6s;
-  animation-delay: -1.5s;
-}
-
-.atm-wind-3 {
-  animation-duration: 7.5s;
-  animation-delay: -3s;
-}
+/* —— Feature 4: Atmosphäre (A2–A6) —— */
 
 /* A2 WaterlineGlow — Meeresspiegel ~60% */
 @keyframes atm-waterline-shift {
@@ -263,6 +241,20 @@ body {
   opacity: 0.7;
 }
 
+.atm-bird-d {
+  top: 15%;
+  animation-duration: 47s;
+  animation-delay: -8s;
+  opacity: 0.8;
+}
+
+.atm-bird-e {
+  top: 21%;
+  animation-duration: 56s;
+  animation-delay: -25s;
+  opacity: 0.65;
+}
+
 /* A6 SunGlint */
 @keyframes atm-glint-pulse {
   0%,
@@ -302,7 +294,6 @@ body {
   .animate-rise,
   .animate-drift,
   .animate-sway,
-  .atm-wind-stroke,
   .atm-waterline,
   .atm-caustics,
   .atm-sparkle,
