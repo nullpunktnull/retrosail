@@ -12,7 +12,6 @@ const sans = Source_Sans_3({
   subsets: ["latin"],
 });
 
-
 export const metadata: Metadata = {
   title: "RetroSail",
   description:

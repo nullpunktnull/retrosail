@@ -24,7 +24,7 @@ const ZONE_META: Record<
   { title: string; addLabel: string }
 > = {
   WIND: {
-    title: "Was treibt uns voran?",
+    title: "Was treibt uns voran?XXXXX",
     addLabel: "+",
   },
   ANCHOR: {
