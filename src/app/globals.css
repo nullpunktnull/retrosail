@@ -214,44 +214,58 @@ body {
   position: absolute;
   top: 14%;
   left: 0;
-  animation: atm-bird-fly 38s linear infinite;
+  animation: atm-bird-fly 28s linear infinite;
 }
 
 .atm-bird path {
   transform-origin: center;
-  animation: atm-bird-flap 0.55s ease-in-out infinite;
+  animation: atm-bird-flap 0.5s ease-in-out infinite;
 }
 
 .atm-bird-a {
-  top: 12%;
-  animation-duration: 42s;
+  top: 11%;
+  animation-duration: 26s;
 }
 
 .atm-bird-b {
-  top: 18%;
-  animation-duration: 51s;
-  animation-delay: -18s;
-  opacity: 0.85;
+  top: 17%;
+  animation-duration: 32s;
+  animation-delay: -10s;
+  opacity: 0.9;
 }
 
 .atm-bird-c {
-  top: 9%;
-  animation-duration: 60s;
-  animation-delay: -30s;
-  opacity: 0.7;
+  top: 8%;
+  animation-duration: 36s;
+  animation-delay: -18s;
+  opacity: 0.75;
 }
 
 .atm-bird-d {
-  top: 15%;
-  animation-duration: 47s;
-  animation-delay: -8s;
-  opacity: 0.8;
+  top: 14%;
+  animation-duration: 29s;
+  animation-delay: -5s;
+  opacity: 0.85;
 }
 
 .atm-bird-e {
-  top: 21%;
-  animation-duration: 56s;
-  animation-delay: -25s;
+  top: 20%;
+  animation-duration: 34s;
+  animation-delay: -22s;
+  opacity: 0.7;
+}
+
+.atm-bird-f {
+  top: 12%;
+  animation-duration: 31s;
+  animation-delay: -14s;
+  opacity: 0.8;
+}
+
+.atm-bird-g {
+  top: 19%;
+  animation-duration: 38s;
+  animation-delay: -27s;
   opacity: 0.65;
 }
 

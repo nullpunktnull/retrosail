@@ -43,13 +43,15 @@ export function SceneAtmosphere() {
         ))}
       </div>
 
-      {/* A5 — Birds (etwas mehr, nicht zu dicht) */}
+      {/* A5 — Birds (sichtbarer, ohne Überfüllung) */}
       <div data-atm="A5-birds" className="atm-birds">
-        <Bird className="atm-bird atm-bird-a" width={28} height={12} opacity={0.45} />
-        <Bird className="atm-bird atm-bird-b" width={20} height={9} opacity={0.35} />
-        <Bird className="atm-bird atm-bird-c" width={16} height={7} opacity={0.3} />
-        <Bird className="atm-bird atm-bird-d" width={22} height={10} opacity={0.38} />
-        <Bird className="atm-bird atm-bird-e" width={14} height={6} opacity={0.28} />
+        <Bird className="atm-bird atm-bird-a" width={36} height={15} opacity={0.5} />
+        <Bird className="atm-bird atm-bird-b" width={26} height={11} opacity={0.4} />
+        <Bird className="atm-bird atm-bird-c" width={22} height={9} opacity={0.35} />
+        <Bird className="atm-bird atm-bird-d" width={30} height={13} opacity={0.42} />
+        <Bird className="atm-bird atm-bird-e" width={20} height={8} opacity={0.32} />
+        <Bird className="atm-bird atm-bird-f" width={24} height={10} opacity={0.38} />
+        <Bird className="atm-bird atm-bird-g" width={18} height={7} opacity={0.3} />
       </div>
 
       {/* A6 — SunGlint nahe Horizont / Insel (rechts) */}

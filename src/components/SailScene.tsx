@@ -26,7 +26,7 @@ type Props = {
 
 export const ZONE_META: Record<
   EntryType,
-  { title: string; addLabel: string }
+  { title: string; addLabel: string; titleLines?: [string, string] }
 > = {
   WIND: {
     title: "Was treibt uns voran?",
@@ -38,6 +38,7 @@ export const ZONE_META: Record<
   },
   ROCK: {
     title: "Was macht das Ziel unmöglich?",
+    titleLines: ["Was macht das Ziel", "unmöglich?"],
     addLabel: "+",
   },
 };
@@ -101,8 +102,16 @@ function ZonePanel({
         className="flex max-h-full min-h-0 flex-col gap-2 rounded-2xl border border-white/25 bg-[color-mix(in_oklab,var(--foam)_58%,transparent)] p-3 shadow-lg backdrop-blur-md sm:p-3.5"
       >
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-[family-name:var(--font-display)] text-base leading-snug text-[var(--ink)] drop-shadow-sm sm:text-lg">
-            {meta.title}
+          <h3 className="min-w-0 flex-1 font-[family-name:var(--font-display)] text-base leading-snug text-[var(--ink)] drop-shadow-sm sm:text-lg">
+            {meta.titleLines ? (
+              <>
+                {meta.titleLines[0]}
+                <br />
+                {meta.titleLines[1]}
+              </>
+            ) : (
+              meta.title
+            )}
           </h3>
           <div className="flex shrink-0 gap-1">
             <button
