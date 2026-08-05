@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Source_Sans_3 } from "next/font/google";
+import { SiteGate } from "@/components/SiteGate";
 import "./globals.css";
 
 const display = Fraunces({
@@ -29,7 +30,7 @@ export default function RootLayout({
       className={`${display.variable} ${sans.variable} h-full antialiased`}
     >
       <body className="min-h-full font-[family-name:var(--font-sans)] text-[var(--ink)]">
-        {children}
+        <SiteGate>{children}</SiteGate>
       </body>
     </html>
   );

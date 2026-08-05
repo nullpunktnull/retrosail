@@ -202,6 +202,15 @@ export function Header({
   }, []);
 
   useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
     setLocalSurveys(surveys);
   }, [surveys]);
 
@@ -369,7 +378,7 @@ export function Header({
   const dragItem = localSurveys.find((s) => s.id === activeId);
 
   return (
-    <header className="relative z-40 flex h-12 shrink-0 items-center gap-3 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--foam)_88%,transparent)] px-3 backdrop-blur-md">
+    <header className="relative z-50 flex h-12 shrink-0 items-center gap-3 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--foam)_88%,transparent)] px-3 backdrop-blur-md">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -495,15 +504,19 @@ export function Header({
           document.body,
         )}
 
-      {open && (
-        <>
+      {open &&
+        createPortal(
           <button
             type="button"
-            className="fixed inset-0 z-40 cursor-default bg-black/10"
-            aria-label="Schliessen"
+            className="fixed inset-0 z-40 cursor-default bg-black/15"
+            aria-label="Umfragen-Menü schliessen"
             onClick={() => setOpen(false)}
-          />
-          <div className="absolute top-full left-0 z-50 mt-0 w-full max-w-3xl border-b border-[var(--line)] bg-[var(--foam)] p-3 shadow-xl sm:left-3 sm:mt-1 sm:rounded-xl sm:border">
+          />,
+          document.body,
+        )}
+
+      {open && (
+        <div className="absolute top-full left-0 z-50 mt-0 w-full max-w-3xl border-b border-[var(--line)] bg-[var(--foam)] p-3 shadow-xl sm:left-3 sm:mt-1 sm:rounded-xl sm:border">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
@@ -548,7 +561,6 @@ export function Header({
               <p className="mt-2 text-[11px] text-[var(--ink-faint)]">Speichern…</p>
             )}
           </div>
-        </>
       )}
 
       {createOpen &&
