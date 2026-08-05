@@ -323,3 +323,25 @@ body {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, var(--sea) 45%, transparent) transparent;
 }
+
+.zone-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--sea) 40%, transparent) transparent;
+}
+
+.zone-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.zone-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.zone-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--sea) 40%, transparent);
+  border-radius: 999px;
+}
+
+.zone-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--sea) 65%, transparent);
+}

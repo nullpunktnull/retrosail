@@ -97,10 +97,8 @@ function ZonePanel({
   const meta = ZONE_META[type];
   return (
     <div className={className}>
-      <section
-        className="flex max-h-full min-h-0 flex-col gap-2 rounded-2xl border border-white/25 bg-[color-mix(in_oklab,var(--foam)_58%,transparent)] p-3 shadow-lg backdrop-blur-md sm:p-3.5"
-      >
-        <div className="flex items-start justify-between gap-2">
+      <section className="flex flex-col gap-2 rounded-2xl border border-white/25 bg-[color-mix(in_oklab,var(--foam)_58%,transparent)] p-3 shadow-lg backdrop-blur-md sm:p-3.5">
+        <div className="flex shrink-0 items-start justify-between gap-2">
           <h3 className="min-w-0 flex-1 font-[family-name:var(--font-display)] text-base leading-snug text-[var(--ink)] drop-shadow-sm sm:text-lg">
             {meta.titleLines ? (
               <>
@@ -132,7 +130,7 @@ function ZonePanel({
             </button>
           </div>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
+        <div className="zone-scroll max-h-[min(28vh,14rem)] space-y-1.5 overflow-y-auto overscroll-contain sm:max-h-[min(30vh,16rem)]">
           {entries.length === 0 ? (
             <p className="rounded-lg border border-dashed border-white/30 bg-white/20 px-3 py-3 text-center text-xs text-[var(--ink-muted)] backdrop-blur-sm">
               Noch leer — sei der Erste.
@@ -251,9 +249,9 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
       </div>
 
       {/* Wind — top left */}
-      <div className="absolute top-3 left-3 z-10 w-[min(100%-1.5rem,20rem)] max-h-[38%] sm:top-4 sm:left-4 sm:w-[22rem]">
+      <div className="absolute top-3 left-3 z-10 w-[min(100%-1.5rem,20rem)] sm:top-4 sm:left-4 sm:w-[22rem]">
         <ZonePanel
-          className="animate-rise max-h-full"
+          className="animate-rise"
           type="WIND"
           entries={wind}
           identity={identity}
@@ -343,9 +341,9 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
       </div>
 
       {/* Anchor — bottom left */}
-      <div className="absolute bottom-3 left-3 z-10 w-[min(100%-1.5rem,20rem)] max-h-[36%] sm:bottom-4 sm:left-4 sm:w-[22rem]">
+      <div className="absolute bottom-3 left-3 z-10 w-[min(100%-1.5rem,20rem)] sm:bottom-4 sm:left-4 sm:w-[22rem]">
         <ZonePanel
-          className="animate-rise max-h-full [animation-delay:100ms]"
+          className="animate-rise [animation-delay:100ms]"
           type="ANCHOR"
           entries={anchor}
           identity={identity}
@@ -357,9 +355,9 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
       </div>
 
       {/* Rocks — bottom right */}
-      <div className="absolute right-3 bottom-3 z-10 w-[min(100%-1.5rem,20rem)] max-h-[36%] sm:bottom-4 sm:right-4 sm:w-[22rem]">
+      <div className="absolute right-3 bottom-3 z-10 w-[min(100%-1.5rem,20rem)] sm:right-4 sm:bottom-4 sm:w-[22rem]">
         <ZonePanel
-          className="animate-rise max-h-full [animation-delay:160ms]"
+          className="animate-rise [animation-delay:160ms]"
           type="ROCK"
           entries={rock}
           identity={identity}
