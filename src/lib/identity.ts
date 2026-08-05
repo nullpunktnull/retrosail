@@ -53,6 +53,13 @@ export function getOrCreateIdentity(): string {
   return token;
 }
 
+export function setIdentity(token: string): void {
+  if (typeof window === "undefined") return;
+  const cleaned = token.trim();
+  if (!cleaned) return;
+  localStorage.setItem(IDENTITY_KEY, cleaned);
+}
+
 export function getStoredName(): string {
   if (typeof window === "undefined") return "";
   return localStorage.getItem(NAME_KEY) ?? "";
@@ -61,6 +68,16 @@ export function getStoredName(): string {
 export function setStoredName(name: string): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(NAME_KEY, name);
+}
+
+/** Link that installs this browser's identity on another device. */
+export function buildShareLoginUrl(origin = window.location.origin): string {
+  const token = getOrCreateIdentity();
+  const name = getStoredName().trim();
+  const url = new URL("/claim", origin);
+  url.searchParams.set("t", token);
+  if (name) url.searchParams.set("n", name);
+  return url.toString();
 }
 
 export function canEditEntry(

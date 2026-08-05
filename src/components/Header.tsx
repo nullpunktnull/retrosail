@@ -28,6 +28,7 @@ import {
   searchAll,
 } from "@/lib/actions";
 import {
+  buildShareLoginUrl,
   canEditSurvey,
   getOrCreateIdentity,
   type SurveyDTO,
@@ -194,6 +195,7 @@ export function Header({
   const [deleteTarget, setDeleteTarget] = useState<SurveySummary | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [shareNote, setShareNote] = useState(false);
 
   useEffect(() => {
     setIdentity(getOrCreateIdentity());
@@ -302,6 +304,23 @@ export function Header({
         archivedIds: nextArchived.map((s) => s.id),
       });
     });
+  }
+
+  async function handleShareLogin() {
+    const link = buildShareLoginUrl();
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      // Fallback for older browsers / insecure context
+      const ta = document.createElement("textarea");
+      ta.value = link;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setShareNote(true);
+    window.setTimeout(() => setShareNote(false), 4500);
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -426,6 +445,29 @@ export function Header({
 
         <button
           type="button"
+          onClick={handleShareLogin}
+          className="flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] bg-white/70 px-2.5 text-sm text-[var(--ink)] transition hover:bg-black/5"
+          title="Login-Link kopieren — auf anderem Gerät öffnen"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          <span className="hidden sm:inline">Login teilen</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => {
             setCreateOpen(true);
             setOpen(false);
@@ -435,6 +477,23 @@ export function Header({
           Neue Umfrage
         </button>
       </div>
+
+      {shareNote &&
+        createPortal(
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <div
+              role="status"
+              className="w-full max-w-sm rounded-xl border border-[var(--line)] bg-[var(--foam)] px-4 py-3 text-sm text-[var(--ink)] shadow-xl"
+            >
+              <p className="font-medium">Login-Link kopiert</p>
+              <p className="mt-0.5 text-[var(--ink-muted)]">
+                Auf dem anderen Gerät den Link öffnen — dort wird deine Kennung
+                übernommen.
+              </p>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {open && (
         <>

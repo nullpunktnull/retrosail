@@ -13,7 +13,7 @@ import { renderRichText } from "@/lib/rich-text";
 const ZONE_META: Record<EntryType, { title: string }> = {
   WIND: { title: "Was treibt uns voran?" },
   ANCHOR: { title: "Was hält uns zurück?" },
-  ROCK: { title: "Was macht das Ziel unmöglich?" },
+  ROCK: { title: "Welche Gefahren gibt es?" },
 };
 
 type Props = {

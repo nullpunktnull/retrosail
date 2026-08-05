@@ -27,7 +27,7 @@ type Props = {
 const TYPE_LABELS: Record<EntryType, string> = {
   WIND: "Wind — was hilft vorwärts",
   ANCHOR: "Anker — was bremst",
-  ROCK: "Felsen — was das Ziel unmöglich macht",
+  ROCK: "Felsen — welche Gefahren es gibt",
 };
 
 /** Compact set for retros — wind / blockers / mood / team. */

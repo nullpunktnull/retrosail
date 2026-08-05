@@ -37,8 +37,7 @@ export const ZONE_META: Record<
     addLabel: "+",
   },
   ROCK: {
-    title: "Was macht das Ziel unmöglich?",
-    titleLines: ["Was macht das Ziel", "unmöglich?"],
+    title: "Welche Gefahren gibt es?",
     addLabel: "+",
   },
 };
@@ -304,7 +303,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
             </form>
           ) : (
             <>
-              <h2 className="mt-1.5 text-sm leading-snug text-[var(--ink)] sm:text-base">
+              <h2 className="mt-1.5 whitespace-pre-line text-sm leading-snug text-[var(--ink)] sm:text-base">
                 {survey.goal}
               </h2>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">

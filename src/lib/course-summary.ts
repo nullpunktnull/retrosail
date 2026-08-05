@@ -3,7 +3,7 @@ import type { EntryDTO, EntryType, SurveyDTO } from "@/lib/identity";
 const SECTION: Record<EntryType, { title: string; emoji: string }> = {
   WIND: { title: "Wind — Was treibt uns voran?", emoji: "💨" },
   ANCHOR: { title: "Anker — Was hält uns zurück?", emoji: "⚓" },
-  ROCK: { title: "Felsen — Was macht das Ziel unmöglich?", emoji: "🪨" },
+  ROCK: { title: "Felsen — Welche Gefahren gibt es?", emoji: "🪨" },
 };
 
 function stripBoldMarkers(text: string): string {
