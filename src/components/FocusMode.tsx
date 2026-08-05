@@ -107,7 +107,7 @@ export function FocusMode({
                       : undefined
                   }
                 >
-                  <p className="text-base leading-snug text-[var(--ink)]">
+                  <p className="whitespace-pre-line text-base leading-snug text-[var(--ink)]">
                     {renderRichText(entry.content)}
                   </p>
                   <p className="mt-2 text-xs text-[var(--ink-faint)]">
