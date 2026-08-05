@@ -1,21 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const GATE_KEY = "retrosail_site_unlocked";
+import { useRouter } from "next/navigation";
+import {
+  GATE_ROLE_KEY,
+  GATE_TOKEN_KEY,
+  setSiteAccess,
+  syncAccessCookie,
+  type SiteRole,
+} from "@/lib/site-access";
 
 /**
  * Site password is checked via /api/site-gate (not in the client bundle).
- * After success, the unlock token stays in localStorage for this browser.
+ * After success, unlock token + role stay in localStorage for this browser.
  */
 export function SiteGate({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    setUnlocked(Boolean(localStorage.getItem(GATE_KEY)));
+    const token = localStorage.getItem(GATE_TOKEN_KEY);
+    if (token) {
+      if (!localStorage.getItem(GATE_ROLE_KEY)) {
+        localStorage.setItem(GATE_ROLE_KEY, "staff");
+      }
+      syncAccessCookie(token);
+      setUnlocked(true);
+    } else {
+      setUnlocked(false);
+    }
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -28,13 +44,19 @@ export function SiteGate({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      const data = (await res.json()) as { ok?: boolean; token?: string };
-      if (!res.ok || !data.ok || !data.token) {
+      const data = (await res.json()) as {
+        ok?: boolean;
+        token?: string;
+        role?: SiteRole;
+      };
+      if (!res.ok || !data.ok || !data.token || !data.role) {
         setError("Falsches Passwort.");
         return;
       }
-      localStorage.setItem(GATE_KEY, data.token);
+      setSiteAccess(data.role, data.token);
+      syncAccessCookie(data.token);
       setUnlocked(true);
+      router.refresh();
     } catch {
       setError("Verbindung fehlgeschlagen. Bitte erneut versuchen.");
     } finally {

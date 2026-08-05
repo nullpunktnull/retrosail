@@ -21,6 +21,7 @@ type Props = {
   type: EntryType | null;
   survey: SurveyDTO;
   identity: string;
+  isStaff?: boolean;
   onClose: () => void;
   onAdd: (type: EntryType) => void;
   onEdit: (entry: EntryDTO) => void;
@@ -34,6 +35,7 @@ export function FocusMode({
   type,
   survey,
   identity,
+  isStaff = false,
   onClose,
   onAdd,
   onEdit,
@@ -89,7 +91,7 @@ export function FocusMode({
             </p>
           ) : (
             entries.map((entry) => {
-              const editable = canEditEntry(entry, survey, identity);
+              const editable = canEditEntry(entry, survey, identity, isStaff);
               return (
                 <article
                   key={entry.id}

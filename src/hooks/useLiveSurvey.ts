@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { getSurvey, listSurveys } from "@/lib/actions";
 import type { SurveyDTO, SurveySummary } from "@/lib/identity";
+import { getSiteAccessToken, type SurveySpace } from "@/lib/site-access";
 
 const DEFAULT_MS = 4000;
 
@@ -15,6 +16,7 @@ function surveyFingerprint(s: SurveyDTO): string {
 
 type Options = {
   surveyId: string | null;
+  space: SurveySpace;
   enabled?: boolean;
   intervalMs?: number;
   onSurvey: (survey: SurveyDTO) => void;
@@ -27,6 +29,7 @@ type Options = {
  */
 export function useLiveSurvey({
   surveyId,
+  space,
   enabled = true,
   intervalMs = DEFAULT_MS,
   onSurvey,
@@ -56,9 +59,12 @@ export function useLiveSurvey({
     async function tick() {
       if (cancelled || document.hidden) return;
       try {
+        const accessToken = getSiteAccessToken();
         const [next, list] = await Promise.all([
-          getSurvey(surveyId!),
-          onListRef.current ? listSurveys() : Promise.resolve(null),
+          getSurvey(surveyId!, accessToken),
+          onListRef.current
+            ? listSurveys({ space, accessToken })
+            : Promise.resolve(null),
         ]);
         if (cancelled || !next) return;
         const fp = surveyFingerprint(next);
@@ -86,5 +92,5 @@ export function useLiveSurvey({
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [surveyId, enabled, intervalMs]);
+  }, [surveyId, space, enabled, intervalMs]);
 }

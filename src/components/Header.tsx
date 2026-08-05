@@ -34,10 +34,14 @@ import {
   type SurveyDTO,
   type SurveySummary,
 } from "@/lib/identity";
+import { getSiteAccessToken } from "@/lib/site-access";
 
 type Props = {
   surveys: SurveySummary[];
   currentSurveyId: string | null;
+  space: "TEAM" | "LEARNERS";
+  isStaff: boolean;
+  onSpaceChange: (space: "TEAM" | "LEARNERS") => void;
   onSelectSurvey: (id: string) => void;
   onSurveyCreated: (survey: SurveyDTO) => void;
   onSurveysReordered: (surveys: SurveySummary[]) => void;
@@ -117,6 +121,7 @@ function DropColumn({
   surveys,
   currentSurveyId,
   identity,
+  isStaff,
   onSelect,
   onDelete,
 }: {
@@ -125,6 +130,7 @@ function DropColumn({
   surveys: SurveySummary[];
   currentSurveyId: string | null;
   identity: string;
+  isStaff: boolean;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -160,7 +166,7 @@ function DropColumn({
                 key={survey.id}
                 survey={survey}
                 active={survey.id === currentSurveyId}
-                canDelete={canEditSurvey(survey, identity)}
+                canDelete={canEditSurvey(survey, identity, isStaff)}
                 onSelect={() => onSelect(survey.id)}
                 onDelete={() => onDelete(survey.id)}
               />
@@ -175,6 +181,9 @@ function DropColumn({
 export function Header({
   surveys,
   currentSurveyId,
+  space,
+  isStaff,
+  onSpaceChange,
   onSelectSurvey,
   onSurveyCreated,
   onSurveysReordered,
@@ -236,12 +245,15 @@ export function Header({
     }
     const t = setTimeout(() => {
       startTransition(async () => {
-        const results = await searchAll(search);
+        const results = await searchAll(search, {
+          space,
+          accessToken: getSiteAccessToken(),
+        });
         setSearchResults(results);
       });
     }, 250);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [search, space]);
 
   function findContainer(id: string): "ACTIVE" | "ARCHIVED" | null {
     if (id === "ACTIVE" || id === "ARCHIVED") return id;
@@ -311,6 +323,8 @@ export function Header({
       await reorderSurveys({
         activeIds: nextActive.map((s) => s.id),
         archivedIds: nextArchived.map((s) => s.id),
+        space,
+        accessToken: getSiteAccessToken(),
       });
     });
   }
@@ -337,7 +351,12 @@ export function Header({
     setError("");
     const token = getOrCreateIdentity();
     setIdentity(token);
-    const result = await createSurvey({ goal, creatorToken: token });
+    const result = await createSurvey({
+      goal,
+      creatorToken: token,
+      space,
+      accessToken: getSiteAccessToken(),
+    });
     if (!result.ok) {
       setError(result.error);
       return;
@@ -363,6 +382,7 @@ export function Header({
     const result = await deleteSurvey({
       surveyId: deleteTarget.id,
       identityToken: token,
+      accessToken: getSiteAccessToken(),
     });
     setDeleteBusy(false);
     if (!result.ok) {
@@ -378,7 +398,7 @@ export function Header({
   const dragItem = localSurveys.find((s) => s.id === activeId);
 
   return (
-    <header className="relative z-50 flex h-12 shrink-0 items-center gap-3 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--foam)_88%,transparent)] px-3 backdrop-blur-md">
+    <header className="relative z-50 flex h-12 shrink-0 items-center gap-2 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--foam)_88%,transparent)] px-3 backdrop-blur-md sm:gap-3">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -388,11 +408,46 @@ export function Header({
         <span className="font-[family-name:var(--font-display)] text-base tracking-wide">
           RetroSail
         </span>
-        <span className="hidden max-w-[42vw] truncate text-[var(--ink-muted)] sm:inline">
+        <span className="hidden max-w-[28vw] truncate text-[var(--ink-muted)] lg:inline">
           {current ? `· ${current.goal}` : "· Keine Umfrage"}
         </span>
         <span className="text-[var(--ink-faint)]">{open ? "▴" : "▾"}</span>
       </button>
+
+      {isStaff ? (
+        <div
+          className="absolute left-1/2 flex -translate-x-1/2 rounded-md border border-[var(--line)] bg-white/70 p-0.5 text-xs sm:text-sm"
+          role="group"
+          aria-label="Bereich"
+        >
+          <button
+            type="button"
+            onClick={() => onSpaceChange("TEAM")}
+            className={`rounded px-2.5 py-1 transition sm:px-3 ${
+              space === "TEAM"
+                ? "bg-[var(--sea)] font-medium text-white"
+                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            FB-Team
+          </button>
+          <button
+            type="button"
+            onClick={() => onSpaceChange("LEARNERS")}
+            className={`rounded px-2.5 py-1 transition sm:px-3 ${
+              space === "LEARNERS"
+                ? "bg-[var(--sea)] font-medium text-white"
+                : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            Lernende
+          </button>
+        </div>
+      ) : (
+        <span className="absolute left-1/2 -translate-x-1/2 text-xs tracking-wide text-[var(--ink-muted)] sm:text-sm">
+          Lernende
+        </span>
+      )}
 
       <div className="ml-auto flex items-center gap-2">
         <label className="relative hidden sm:block">
@@ -530,6 +585,7 @@ export function Header({
                   surveys={active}
                   currentSurveyId={currentSurveyId}
                   identity={identity}
+                  isStaff={isStaff}
                   onSelect={(id) => {
                     onSelectSurvey(id);
                     setOpen(false);
@@ -542,6 +598,7 @@ export function Header({
                   surveys={archived}
                   currentSurveyId={currentSurveyId}
                   identity={identity}
+                  isStaff={isStaff}
                   onSelect={(id) => {
                     onSelectSurvey(id);
                     setOpen(false);

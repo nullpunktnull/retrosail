@@ -9,6 +9,7 @@ import {
   type EntryDTO,
   type EntryType,
 } from "@/lib/identity";
+import { getSiteAccessToken } from "@/lib/site-access";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 type Mode =
@@ -162,6 +163,7 @@ export function EntryModal({
           authorName: name,
           authorToken: identity,
           content,
+          accessToken: getSiteAccessToken(),
         });
         if (!result.ok) {
           setError(result.error);
@@ -175,6 +177,7 @@ export function EntryModal({
           identityToken: identity,
           authorName: name,
           content,
+          accessToken: getSiteAccessToken(),
         });
         if (!result.ok) {
           setError(result.error);
@@ -195,6 +198,7 @@ export function EntryModal({
     const result = await deleteEntry({
       entryId: mode!.entry.id,
       identityToken: identity,
+      accessToken: getSiteAccessToken(),
     });
     setBusy(false);
     if (!result.ok) {

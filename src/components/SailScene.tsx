@@ -11,6 +11,7 @@ import {
 } from "@/lib/identity";
 import { renderRichText } from "@/lib/rich-text";
 import { deleteSurvey, updateSurveyGoal } from "@/lib/actions";
+import { getSiteAccessToken } from "@/lib/site-access";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CourseSummaryModal } from "./CourseSummaryModal";
 import { EntryModal } from "./EntryModal";
@@ -20,6 +21,7 @@ import { ShareLinkButton } from "./ShareLinkButton";
 
 type Props = {
   survey: SurveyDTO;
+  isStaff?: boolean;
   onSurveyChange: (survey: SurveyDTO) => void;
   onSurveyDeleted: (surveyId: string) => void;
 };
@@ -80,6 +82,7 @@ function ZonePanel({
   entries,
   identity,
   survey,
+  isStaff,
   onAdd,
   onEdit,
   onFocus,
@@ -89,6 +92,7 @@ function ZonePanel({
   entries: EntryDTO[];
   identity: string;
   survey: SurveyDTO;
+  isStaff: boolean;
   onAdd: () => void;
   onEdit: (entry: EntryDTO) => void;
   onFocus: () => void;
@@ -140,7 +144,7 @@ function ZonePanel({
               <EntryCard
                 key={entry.id}
                 entry={entry}
-                editable={canEditEntry(entry, survey, identity)}
+                editable={canEditEntry(entry, survey, identity, isStaff)}
                 onEdit={() => onEdit(entry)}
               />
             ))
@@ -151,7 +155,12 @@ function ZonePanel({
   );
 }
 
-export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
+export function SailScene({
+  survey,
+  isStaff = false,
+  onSurveyChange,
+  onSurveyDeleted,
+}: Props) {
   const [identity, setIdentity] = useState("");
   const [modal, setModal] = useState<
     | { kind: "create"; type: EntryType }
@@ -179,7 +188,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
   const wind = survey.entries.filter((e) => e.type === "WIND");
   const anchor = survey.entries.filter((e) => e.type === "ANCHOR");
   const rock = survey.entries.filter((e) => e.type === "ROCK");
-  const isCreator = canEditSurvey(survey, identity);
+  const isCreator = canEditSurvey(survey, identity, isStaff);
 
   function upsertEntry(entry: EntryDTO) {
     const index = survey.entries.findIndex((e) => e.id === entry.id);
@@ -206,6 +215,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
       surveyId: survey.id,
       goal: goalDraft,
       identityToken: identity,
+      accessToken: getSiteAccessToken(),
     });
     if (!result.ok) {
       setGoalError(result.error);
@@ -221,6 +231,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
     const result = await deleteSurvey({
       surveyId: survey.id,
       identityToken: identity,
+      accessToken: getSiteAccessToken(),
     });
     setDeleteBusy(false);
     if (!result.ok) {
@@ -256,6 +267,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
           entries={wind}
           identity={identity}
           survey={survey}
+          isStaff={isStaff}
           onAdd={() => setModal({ kind: "create", type: "WIND" })}
           onEdit={(entry) => setModal({ kind: "edit", entry })}
           onFocus={() => setFocusType("WIND")}
@@ -348,6 +360,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
           entries={anchor}
           identity={identity}
           survey={survey}
+          isStaff={isStaff}
           onAdd={() => setModal({ kind: "create", type: "ANCHOR" })}
           onEdit={(entry) => setModal({ kind: "edit", entry })}
           onFocus={() => setFocusType("ANCHOR")}
@@ -362,6 +375,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
           entries={rock}
           identity={identity}
           survey={survey}
+          isStaff={isStaff}
           onAdd={() => setModal({ kind: "create", type: "ROCK" })}
           onEdit={(entry) => setModal({ kind: "edit", entry })}
           onFocus={() => setFocusType("ROCK")}
@@ -389,6 +403,7 @@ export function SailScene({ survey, onSurveyChange, onSurveyDeleted }: Props) {
         type={focusType}
         survey={survey}
         identity={identity}
+        isStaff={isStaff}
         onClose={() => setFocusType(null)}
         onAdd={(type) => setModal({ kind: "create", type })}
         onEdit={(entry) => setModal({ kind: "edit", entry })}

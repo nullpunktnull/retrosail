@@ -18,17 +18,23 @@ enum EntryType {
   ROCK
 }
 
+enum SurveySpace {
+  TEAM
+  LEARNERS
+}
+
 model Survey {
   id           String       @id @default(cuid())
   goal         String
   creatorToken String
   status       SurveyStatus @default(ACTIVE)
+  space        SurveySpace  @default(TEAM)
   sortOrder    Int          @default(0)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   entries      Entry[]
 
-  @@index([status, sortOrder])
+  @@index([space, status, sortOrder])
 }
 
 model Entry {

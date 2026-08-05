@@ -5,20 +5,44 @@ import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 import { SailScene } from "@/components/SailScene";
 import { useLiveSurvey } from "@/hooks/useLiveSurvey";
-import { getSurvey } from "@/lib/actions";
+import { getLatestActiveSurvey, getSurvey, listSurveys } from "@/lib/actions";
 import type { SurveyDTO, SurveySummary } from "@/lib/identity";
+import {
+  getActiveSpace,
+  getSiteAccessToken,
+  getSiteRole,
+  setActiveSpace,
+  type SiteRole,
+  type SurveySpace,
+} from "@/lib/site-access";
 
 type Props = {
   initialSurveys: SurveySummary[];
   initialSurvey: SurveyDTO | null;
+  initialSpace: SurveySpace;
+  initialRole: SiteRole | null;
 };
 
-export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
+export function RetroSailApp({
+  initialSurveys,
+  initialSurvey,
+  initialSpace,
+  initialRole,
+}: Props) {
   const [surveys, setSurveys] = useState(initialSurveys);
   const [survey, setSurvey] = useState(initialSurvey);
+  const [space, setSpace] = useState<SurveySpace>(initialSpace);
+  const [role, setRole] = useState<SiteRole | null>(initialRole);
   const [, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    const r = getSiteRole();
+    const s = getActiveSpace(r);
+    setRole(r);
+    setSpace(s);
+  }, []);
 
   const syncUrl = useCallback(
     (id: string | null) => {
@@ -35,7 +59,7 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
   const selectSurvey = useCallback(
     (id: string) => {
       startTransition(async () => {
-        const next = await getSurvey(id);
+        const next = await getSurvey(id, getSiteAccessToken());
         if (next) {
           setSurvey(next);
           syncUrl(next.id);
@@ -45,6 +69,46 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
     [syncUrl],
   );
 
+  const loadSpace = useCallback(
+    async (nextSpace: SurveySpace, preferSurveyId?: string | null) => {
+      const accessToken = getSiteAccessToken();
+      const [list, latest] = await Promise.all([
+        listSurveys({ space: nextSpace, accessToken }),
+        getLatestActiveSurvey({ space: nextSpace, accessToken }),
+      ]);
+      setSurveys(list);
+      setSpace(nextSpace);
+
+      if (preferSurveyId) {
+        const preferred = list.find((s) => s.id === preferSurveyId);
+        if (preferred) {
+          const full = await getSurvey(preferSurveyId, accessToken);
+          setSurvey(full);
+          if (full) syncUrl(full.id);
+          return;
+        }
+      }
+
+      if (latest) {
+        setSurvey(latest);
+        syncUrl(latest.id);
+      } else {
+        setSurvey(null);
+        syncUrl(null);
+      }
+    },
+    [syncUrl],
+  );
+
+  async function handleSpaceChange(next: SurveySpace) {
+    if (role !== "staff" || next === space) return;
+    setActiveSpace(next);
+    startTransition(async () => {
+      await loadSpace(next);
+      router.refresh();
+    });
+  }
+
   useEffect(() => {
     setSurveys(initialSurveys);
   }, [initialSurveys]);
@@ -53,9 +117,14 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
     setSurvey(initialSurvey);
   }, [initialSurvey?.id]);
 
+  useEffect(() => {
+    setSpace(initialSpace);
+  }, [initialSpace]);
+
   // Feature 2 — Live-Aktualisierung
   useLiveSurvey({
     surveyId: survey?.id ?? null,
+    space,
     onSurvey: (next) => {
       setSurvey(next);
       setSurveys((prev) =>
@@ -65,6 +134,7 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
                 ...s,
                 goal: next.goal,
                 status: next.status,
+                space: next.space,
                 entryCount: next.entries.length,
               }
             : s,
@@ -81,6 +151,7 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
         goal: created.goal,
         creatorToken: created.creatorToken,
         status: created.status,
+        space: created.space,
         sortOrder: created.sortOrder,
         createdAt: created.createdAt,
         entryCount: created.entries.length,
@@ -99,7 +170,7 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
           next.find((s) => s.status === "ACTIVE") ?? next[0] ?? null;
         if (fallback) {
           startTransition(async () => {
-            const loaded = await getSurvey(fallback.id);
+            const loaded = await getSurvey(fallback.id, getSiteAccessToken());
             setSurvey(loaded);
             if (loaded) syncUrl(loaded.id);
           });
@@ -121,6 +192,7 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
               ...s,
               goal: next.goal,
               status: next.status,
+              space: next.space,
               entryCount: next.entries.length,
             }
           : s,
@@ -128,11 +200,16 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
     );
   }
 
+  const isStaff = role === "staff";
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <Header
         surveys={surveys}
         currentSurveyId={survey?.id ?? null}
+        space={space}
+        isStaff={isStaff}
+        onSpaceChange={handleSpaceChange}
         onSelectSurvey={selectSurvey}
         onSurveyCreated={handleSurveyCreated}
         onSurveysReordered={setSurveys}
@@ -142,6 +219,7 @@ export function RetroSailApp({ initialSurveys, initialSurvey }: Props) {
       {survey ? (
         <SailScene
           survey={survey}
+          isStaff={isStaff}
           onSurveyDeleted={handleSurveyDeleted}
           onSurveyChange={handleSurveyChange}
         />

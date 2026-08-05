@@ -1,5 +1,6 @@
 export type EntryType = "WIND" | "ANCHOR" | "ROCK";
 export type SurveyStatus = "ACTIVE" | "ARCHIVED";
+export type SurveySpace = "TEAM" | "LEARNERS";
 
 export type EntryDTO = {
   id: string;
@@ -17,6 +18,7 @@ export type SurveyDTO = {
   goal: string;
   creatorToken: string;
   status: SurveyStatus;
+  space: SurveySpace;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -28,6 +30,7 @@ export type SurveySummary = {
   goal: string;
   creatorToken: string;
   status: SurveyStatus;
+  space: SurveySpace;
   sortOrder: number;
   createdAt: string;
   entryCount: number;
@@ -84,7 +87,9 @@ export function canEditEntry(
   entry: { authorToken: string },
   survey: { creatorToken: string },
   identity: string,
+  isStaff = false,
 ): boolean {
+  if (isStaff) return true;
   if (!identity) return false;
   return entry.authorToken === identity || survey.creatorToken === identity;
 }
@@ -92,7 +97,9 @@ export function canEditEntry(
 export function canEditSurvey(
   survey: { creatorToken: string },
   identity: string,
+  isStaff = false,
 ): boolean {
+  if (isStaff) return true;
   if (!identity) return false;
   return survey.creatorToken === identity;
 }

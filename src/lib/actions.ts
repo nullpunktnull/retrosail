@@ -1,9 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { EntryType, SurveyStatus } from "@prisma/client";
+import { EntryType, SurveyStatus, type SurveySpace } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { EntryDTO, SurveyDTO, SurveySummary } from "./identity";
+import {
+  isStaffToken,
+  resolveSpace,
+  roleFromToken,
+} from "./site-access-server";
 
 function toEntryDTO(entry: {
   id: string;
@@ -32,6 +37,7 @@ function toSurveyDTO(survey: {
   goal: string;
   creatorToken: string;
   status: SurveyStatus;
+  space: SurveySpace;
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -51,6 +57,7 @@ function toSurveyDTO(survey: {
     goal: survey.goal,
     creatorToken: survey.creatorToken,
     status: survey.status,
+    space: survey.space,
     sortOrder: survey.sortOrder,
     createdAt: survey.createdAt.toISOString(),
     updatedAt: survey.updatedAt.toISOString(),
@@ -58,35 +65,94 @@ function toSurveyDTO(survey: {
   };
 }
 
-export async function listSurveys(): Promise<SurveySummary[]> {
-  const surveys = await prisma.survey.findMany({
-    orderBy: [{ status: "asc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
-    include: { _count: { select: { entries: true } } },
-  });
-
-  return surveys.map((s) => ({
+function toSummary(
+  s: {
+    id: string;
+    goal: string;
+    creatorToken: string;
+    status: SurveyStatus;
+    space: SurveySpace;
+    sortOrder: number;
+    createdAt: Date;
+    _count: { entries: number };
+  },
+): SurveySummary {
+  return {
     id: s.id,
     goal: s.goal,
     creatorToken: s.creatorToken,
     status: s.status,
+    space: s.space,
     sortOrder: s.sortOrder,
     createdAt: s.createdAt.toISOString(),
     entryCount: s._count.entries,
-  }));
+  };
 }
 
-export async function getSurvey(id: string): Promise<SurveyDTO | null> {
+function canManageSurvey(
+  survey: { creatorToken: string },
+  identityToken: string,
+  accessToken?: string,
+): boolean {
+  if (isStaffToken(accessToken)) return true;
+  return survey.creatorToken === identityToken;
+}
+
+function canManageEntry(
+  entry: { authorToken: string },
+  survey: { creatorToken: string },
+  identityToken: string,
+  accessToken?: string,
+): boolean {
+  if (isStaffToken(accessToken)) return true;
+  return (
+    entry.authorToken === identityToken ||
+    survey.creatorToken === identityToken
+  );
+}
+
+export async function listSurveys(input?: {
+  space?: SurveySpace;
+  accessToken?: string;
+}): Promise<SurveySummary[]> {
+  const space = resolveSpace(input?.accessToken, input?.space);
+  if (!space) return [];
+
+  const surveys = await prisma.survey.findMany({
+    where: { space },
+    orderBy: [{ status: "asc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
+    include: { _count: { select: { entries: true } } },
+  });
+
+  return surveys.map(toSummary);
+}
+
+export async function getSurvey(
+  id: string,
+  accessToken?: string,
+): Promise<SurveyDTO | null> {
   const survey = await prisma.survey.findUnique({
     where: { id },
     include: { entries: { orderBy: { createdAt: "asc" } } },
   });
   if (!survey) return null;
+
+  const role = roleFromToken(accessToken);
+  if (!role) return null;
+  if (role === "learner" && survey.space === "TEAM") return null;
+
   return toSurveyDTO(survey);
 }
 
-export async function getLatestActiveSurvey(): Promise<SurveyDTO | null> {
+export async function getLatestActiveSurvey(input?: {
+  space?: SurveySpace;
+  accessToken?: string;
+}): Promise<SurveyDTO | null> {
+  const space = resolveSpace(input?.accessToken, input?.space);
+  if (!space) return null;
+
   const survey = await prisma.survey.findFirst({
-    where: { status: "ACTIVE" },
+    where: { status: "ACTIVE", space },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     include: { entries: { orderBy: { createdAt: "asc" } } },
   });
@@ -97,6 +163,8 @@ export async function getLatestActiveSurvey(): Promise<SurveyDTO | null> {
 export async function createSurvey(input: {
   goal: string;
   creatorToken: string;
+  space?: SurveySpace;
+  accessToken?: string;
 }): Promise<{ ok: true; survey: SurveyDTO } | { ok: false; error: string }> {
   const goal = input.goal.trim();
   if (!goal) return { ok: false, error: "Bitte ein Ziel angeben." };
@@ -104,8 +172,11 @@ export async function createSurvey(input: {
     return { ok: false, error: "Identität fehlt." };
   }
 
+  const space = resolveSpace(input.accessToken, input.space);
+  if (!space) return { ok: false, error: "Keine Berechtigung." };
+
   const maxOrder = await prisma.survey.aggregate({
-    where: { status: "ACTIVE" },
+    where: { status: "ACTIVE", space },
     _max: { sortOrder: true },
   });
 
@@ -114,6 +185,7 @@ export async function createSurvey(input: {
       goal,
       creatorToken: input.creatorToken.trim(),
       status: "ACTIVE",
+      space,
       sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
     },
     include: { entries: true },
@@ -127,10 +199,11 @@ export async function updateSurveyGoal(input: {
   surveyId: string;
   goal: string;
   identityToken: string;
+  accessToken?: string;
 }): Promise<{ ok: true; survey: SurveyDTO } | { ok: false; error: string }> {
   const survey = await prisma.survey.findUnique({ where: { id: input.surveyId } });
   if (!survey) return { ok: false, error: "Umfrage nicht gefunden." };
-  if (survey.creatorToken !== input.identityToken) {
+  if (!canManageSurvey(survey, input.identityToken, input.accessToken)) {
     return { ok: false, error: "Nur der Ersteller darf das Ziel ändern." };
   }
 
@@ -150,10 +223,11 @@ export async function updateSurveyGoal(input: {
 export async function deleteSurvey(input: {
   surveyId: string;
   identityToken: string;
+  accessToken?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const survey = await prisma.survey.findUnique({ where: { id: input.surveyId } });
   if (!survey) return { ok: false, error: "Umfrage nicht gefunden." };
-  if (survey.creatorToken !== input.identityToken) {
+  if (!canManageSurvey(survey, input.identityToken, input.accessToken)) {
     return { ok: false, error: "Nur der Ersteller darf die Umfrage löschen." };
   }
 
@@ -165,7 +239,22 @@ export async function deleteSurvey(input: {
 export async function reorderSurveys(input: {
   activeIds: string[];
   archivedIds: string[];
+  space?: SurveySpace;
+  accessToken?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const space = resolveSpace(input.accessToken, input.space);
+  if (!space) return { ok: false, error: "Keine Berechtigung." };
+
+  const ids = [...input.activeIds, ...input.archivedIds];
+  if (ids.length > 0) {
+    const owned = await prisma.survey.count({
+      where: { id: { in: ids }, space },
+    });
+    if (owned !== ids.length) {
+      return { ok: false, error: "Ungültige Umfragen für diesen Bereich." };
+    }
+  }
+
   await prisma.$transaction([
     ...input.activeIds.map((id, index) =>
       prisma.survey.update({
@@ -191,6 +280,7 @@ export async function createEntry(input: {
   authorName: string;
   authorToken: string;
   content: string;
+  accessToken?: string;
 }): Promise<{ ok: true; entry: EntryDTO } | { ok: false; error: string }> {
   const content = input.content.trim();
   const authorName = input.authorName.trim();
@@ -200,6 +290,12 @@ export async function createEntry(input: {
 
   const survey = await prisma.survey.findUnique({ where: { id: input.surveyId } });
   if (!survey) return { ok: false, error: "Umfrage nicht gefunden." };
+
+  const role = roleFromToken(input.accessToken);
+  if (!role) return { ok: false, error: "Keine Berechtigung." };
+  if (role === "learner" && survey.space === "TEAM") {
+    return { ok: false, error: "Keine Berechtigung." };
+  }
 
   const entry = await prisma.entry.create({
     data: {
@@ -220,6 +316,7 @@ export async function updateEntry(input: {
   identityToken: string;
   authorName?: string;
   content?: string;
+  accessToken?: string;
 }): Promise<{ ok: true; entry: EntryDTO } | { ok: false; error: string }> {
   const entry = await prisma.entry.findUnique({
     where: { id: input.entryId },
@@ -227,9 +324,9 @@ export async function updateEntry(input: {
   });
   if (!entry) return { ok: false, error: "Eintrag nicht gefunden." };
 
-  const isAuthor = entry.authorToken === input.identityToken;
-  const isCreator = entry.survey.creatorToken === input.identityToken;
-  if (!isAuthor && !isCreator) {
+  if (
+    !canManageEntry(entry, entry.survey, input.identityToken, input.accessToken)
+  ) {
     return { ok: false, error: "Keine Berechtigung zum Bearbeiten." };
   }
 
@@ -257,6 +354,7 @@ export async function updateEntry(input: {
 export async function deleteEntry(input: {
   entryId: string;
   identityToken: string;
+  accessToken?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const entry = await prisma.entry.findUnique({
     where: { id: input.entryId },
@@ -264,9 +362,9 @@ export async function deleteEntry(input: {
   });
   if (!entry) return { ok: false, error: "Eintrag nicht gefunden." };
 
-  const isAuthor = entry.authorToken === input.identityToken;
-  const isCreator = entry.survey.creatorToken === input.identityToken;
-  if (!isAuthor && !isCreator) {
+  if (
+    !canManageEntry(entry, entry.survey, input.identityToken, input.accessToken)
+  ) {
     return { ok: false, error: "Keine Berechtigung zum Löschen." };
   }
 
@@ -275,22 +373,29 @@ export async function deleteEntry(input: {
   return { ok: true };
 }
 
-export async function searchAll(query: string): Promise<{
+export async function searchAll(
+  query: string,
+  input?: { space?: SurveySpace; accessToken?: string },
+): Promise<{
   surveys: SurveySummary[];
   entries: Array<EntryDTO & { surveyGoal: string }>;
 }> {
+  const space = resolveSpace(input?.accessToken, input?.space);
+  if (!space) return { surveys: [], entries: [] };
+
   const q = query.trim();
   if (!q) return { surveys: [], entries: [] };
 
   const [surveys, entries] = await Promise.all([
     prisma.survey.findMany({
-      where: { goal: { contains: q } },
+      where: { space, goal: { contains: q } },
       include: { _count: { select: { entries: true } } },
       orderBy: { updatedAt: "desc" },
       take: 20,
     }),
     prisma.entry.findMany({
       where: {
+        survey: { space },
         OR: [
           { content: { contains: q } },
           { authorName: { contains: q } },
@@ -303,15 +408,7 @@ export async function searchAll(query: string): Promise<{
   ]);
 
   return {
-    surveys: surveys.map((s) => ({
-      id: s.id,
-      goal: s.goal,
-      creatorToken: s.creatorToken,
-      status: s.status,
-      sortOrder: s.sortOrder,
-      createdAt: s.createdAt.toISOString(),
-      entryCount: s._count.entries,
-    })),
+    surveys: surveys.map(toSummary),
     entries: entries.map((e) => ({
       ...toEntryDTO(e),
       surveyGoal: e.survey.goal,
