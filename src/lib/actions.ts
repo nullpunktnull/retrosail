@@ -89,22 +89,23 @@ function toSummary(
   };
 }
 
+/** Staff may manage everything in LEARNERS space only; TEAM keeps creator/author rules. */
 function canManageSurvey(
-  survey: { creatorToken: string },
+  survey: { creatorToken: string; space: SurveySpace },
   identityToken: string,
   accessToken?: string,
 ): boolean {
-  if (isStaffToken(accessToken)) return true;
+  if (isStaffToken(accessToken) && survey.space === "LEARNERS") return true;
   return survey.creatorToken === identityToken;
 }
 
 function canManageEntry(
   entry: { authorToken: string },
-  survey: { creatorToken: string },
+  survey: { creatorToken: string; space: SurveySpace },
   identityToken: string,
   accessToken?: string,
 ): boolean {
-  if (isStaffToken(accessToken)) return true;
+  if (isStaffToken(accessToken) && survey.space === "LEARNERS") return true;
   return (
     entry.authorToken === identityToken ||
     survey.creatorToken === identityToken

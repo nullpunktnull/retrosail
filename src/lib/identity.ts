@@ -85,21 +85,22 @@ export function buildShareLoginUrl(origin = window.location.origin): string {
 
 export function canEditEntry(
   entry: { authorToken: string },
-  survey: { creatorToken: string },
+  survey: { creatorToken: string; space: SurveySpace },
   identity: string,
   isStaff = false,
 ): boolean {
-  if (isStaff) return true;
+  // Staff override only in Lernende space — FB-Team keeps author/creator rules
+  if (isStaff && survey.space === "LEARNERS") return true;
   if (!identity) return false;
   return entry.authorToken === identity || survey.creatorToken === identity;
 }
 
 export function canEditSurvey(
-  survey: { creatorToken: string },
+  survey: { creatorToken: string; space: SurveySpace },
   identity: string,
   isStaff = false,
 ): boolean {
-  if (isStaff) return true;
+  if (isStaff && survey.space === "LEARNERS") return true;
   if (!identity) return false;
   return survey.creatorToken === identity;
 }
